@@ -1,0 +1,225 @@
+/* --- NEW MATERIAL SIDEBAR STYLES --- */
+.new-sidebar-container {
+    width: 260px;
+    height: calc(100vh - 40px);
+    margin: 20px;
+    background: linear-gradient(180deg, #1a2035 0%, #1a2035 100%);
+    border-radius: 20px;
+    /* Floating card look */
+    display: flex;
+    flex-direction: column;
+    padding: 20px 15px;
+    position: relative;
+    /* Glassmorphism background */
+    background: rgba(22, 27, 34, 0.85);
+    /* Slightly more opaque for legibility */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+}
+
+.sidebar-brand {
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: white;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-divider {
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* --- Sidebar Item (Base) --- */
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    border-radius: 8px;
+    /* Used only for active state generally, but let's keep it for cleanliness */
+    color: #a9b7d0;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 5px;
+
+    /* NEW HOVER LOGIC (Border Scale) */
+    position: relative;
+    z-index: 1;
+    overflow: visible;
+    /* Should be visible so borders don't get clipped if they expand? No, usually hidden works if inset. User code had separate elements. Let's use pseudo-elements inside. */
+}
+
+/* Pseudo-element for Border (scaleY) */
+.sidebar-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-top: 2px solid #58a6ff;
+    border-bottom: 2px solid #58a6ff;
+    transform: scaleY(2);
+    /* Start stretched out/invisible */
+    opacity: 0;
+    transition: 0.3s;
+    pointer-events: none;
+    border-radius: 8px;
+}
+
+/* Pseudo-element for Background Fill (scaleY/scale) */
+.sidebar-item::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    /* Inside border */
+    left: 0;
+    width: 100%;
+    height: calc(100% - 4px);
+    background-color: #58a6ff;
+    transform: scale(0);
+    opacity: 0;
+    transition: 0.3s;
+    z-index: -1;
+    border-radius: 8px;
+}
+
+/* Hover States */
+.sidebar-item:hover {
+    color: #fff;
+    background: transparent;
+    /* Override default */
+}
+
+.sidebar-item:hover::before {
+    transform: scaleY(1);
+    opacity: 1;
+}
+
+.sidebar-item:hover::after {
+    transform: scaleY(1);
+    opacity: 1;
+}
+
+/* Active State (Keep distinct or merge?) - Let's keep Active distinct but maybe use the filled look */
+.sidebar-item.active {
+    background: linear-gradient(90deg, #58a6ff, #1f6feb);
+    box-shadow: 0 4px 15px rgba(31, 111, 235, 0.4);
+    color: white;
+    /* Disable hover effects on active? Or keep them? Let's override them for active so it stays solid */
+}
+
+.sidebar-item.active::before,
+.sidebar-item.active::after {
+    display: none;
+}
+
+.sidebar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    width: 30px;
+    height: 30px;
+}
+
+.sidebar-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 20px;
+}
+
+/* --- LOGOUT SHEEN EFFECT --- */
+:root {
+    --red-sheen: linear-gradient(to bottom,
+            hsl(12, 90%, 43%),
+            hsla(12, 40%, 70%, 0.5) 50%,
+            hsl(12, 93%, 23%));
+    /* Approximated elastic easing */
+    --ease-elastic-in-1: cubic-bezier(0.5, -0.5, 0.1, 1.5);
+}
+
+@keyframes sheen {
+    100% {
+        transform: rotateZ(60deg) translate(1em, -9em);
+    }
+}
+
+.logout-sheen {
+    position: relative;
+    overflow: hidden !important;
+    /* Ensure sheen doesn't spill */
+    border: 1px solid hsl(12, 90%, 63%) !important;
+    /* Red border for logout */
+    box-shadow: 0 0 4px hsl(12, 100%, 60%) !important;
+}
+
+.logout-sheen:hover {
+    box-shadow: 0 0 10px hsl(12, 100%, 60%) !important;
+}
+
+/* Override the blue fill from .sidebar-item */
+.logout-sheen::before,
+.logout-sheen::after {
+    /* Reset the blue fill logic */
+    display: block;
+    background: none;
+    border: none;
+    transform: none;
+    opacity: 1;
+    transition: none;
+}
+
+.logout-sheen::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    bottom: -50%;
+    left: -50%;
+    background: var(--red-sheen);
+    transform: rotateZ(60deg) translate(-5em, 7.5em);
+    opacity: 0;
+    /* Hidden by default */
+    z-index: 0;
+}
+
+.logout-sheen:hover::after {
+    opacity: 1;
+    animation: sheen 1s infinite alternate;
+    /* Using alternate to smooth it out */
+    animation-timing-function: var(--ease-elastic-in-1);
+}
+
+/* Ensure text is above the sheen */
+.logout-sheen .sidebar-icon,
+.logout-sheen .sidebar-label {
+    position: relative;
+    z-index: 2;
+}

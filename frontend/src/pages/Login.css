@@ -1,0 +1,131 @@
+/* Glassmorphism Login Theme */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+.login-page-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0f0c29;
+    /* Fallback */
+    background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+    font-family: 'Outfit', sans-serif;
+    position: relative;
+    overflow: hidden;
+}
+
+
+/* Glass Card */
+.glass-login-card {
+    width: 400px;
+    padding: 50px 40px;
+    background: rgba(255, 255, 255, 0.05);
+    /* Very transparent */
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    color: white;
+}
+
+.glass-login-card h2 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+.sub-text {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 30px;
+}
+
+/* Inputs */
+.input-group {
+    width: 100%;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.glass-input {
+    width: 100%;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.glass-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.glass-input:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #667eea;
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+}
+
+.input-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-left: 5px;
+}
+
+/* Button */
+.glow-btn {
+    width: 100%;
+    padding: 15px;
+    margin-top: 10px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 30px;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 5px 15px rgba(118, 75, 162, 0.4);
+}
+
+.glow-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(118, 75, 162, 0.6);
+}
+
+.glow-btn:active {
+    transform: translateY(1px);
+}
+
+/* Footer */
+.auth-footer {
+    margin-top: 25px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.auth-footer a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    margin-left: 5px;
+    transition: color 0.3s;
+}
+
+.auth-footer a:hover {
+    color: #ff5e62;
+    text-decoration: underline;
+}

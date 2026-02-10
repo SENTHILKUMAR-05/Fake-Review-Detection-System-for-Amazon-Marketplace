@@ -1,0 +1,147 @@
+/* --- NEW GREEN LEAF AUTH THEME --- */
+
+/* Centered Page Background */
+.leaf-auth-page {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f0f2f5;
+    /* Light gray neutral bg */
+    background-image: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+    /* Soft subtle gradient */
+    position: relative;
+    overflow: hidden;
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Background Leaf Shadows (Decoration) */
+.leaf-shadow {
+    position: absolute;
+    width: 60%;
+    height: 100%;
+    background-image: url('https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1000&auto=format&fit=crop');
+    /* Shadow/Blurry plant */
+    background-size: cover;
+    opacity: 0.1;
+    filter: blur(8px);
+    z-index: 0;
+    right: 0;
+}
+
+/* The Floating Card */
+.auth-card {
+    width: 900px;
+    height: 600px;
+    background: white;
+    border-radius: 30px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    display: flex;
+    overflow: hidden;
+    z-index: 10;
+    position: relative;
+}
+
+/* Left Side: Form (50%) */
+.auth-card-form {
+    flex: 1;
+    padding: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.auth-card-form h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 40px;
+}
+
+/* Right Side: Image (50%) */
+.auth-card-image {
+    flex: 1;
+    /* Using a highly reliable Unsplash Source URL for Monstera Leaf */
+    background-image: url('https://images.unsplash.com/photo-1598555230894-0466ba6f981f?q=80&w=1000&auto=format&fit=crop');
+    /* Monstera Leaf */
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+/* Green Theme Inputs */
+.input-group {
+    margin-bottom: 20px;
+}
+
+.leaf-input {
+    width: 100%;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fafafa;
+    color: #333333;
+    /* Dark text for visibility */
+    transition: all 0.3s;
+    outline: none;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    /* Important for padding */
+}
+
+.leaf-input:focus {
+    border-color: #4a7c59;
+    /* Green focus */
+    background: white;
+    box-shadow: 0 0 0 3px rgba(74, 124, 89, 0.1);
+}
+
+.leaf-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #555;
+}
+
+/* Green Button */
+.leaf-btn {
+    width: 100%;
+    padding: 15px;
+    background-color: #4a7c59;
+    /* Deep Green */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin-top: 10px;
+}
+
+.leaf-btn:hover {
+    background-color: #365c42;
+}
+
+/* Checkbox */
+.leaf-checkbox {
+    display: flex;
+    align-items: center;
+    margin-top: 15px;
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.leaf-checkbox input {
+    margin-right: 8px;
+    accent-color: #4a7c59;
+}
+
+.leaf-link {
+    color: #4a7c59;
+    text-decoration: none;
+    font-weight: 600;
+}

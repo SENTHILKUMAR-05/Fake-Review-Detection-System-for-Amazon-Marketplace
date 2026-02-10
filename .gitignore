@@ -1,0 +1,23 @@
+# Dependency directories
+node_modules/
+venv/
+env/
+
+# Python compiled files
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# Build directories
+dist/
+build/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE specific files
+.vscode/
+.idea/

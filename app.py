@@ -1,6 +1,10 @@
 import streamlit as st
 import joblib
 import os
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+# Initialize VADER analyzer
+analyzer = SentimentIntensityAnalyzer()
 
 # Load the trained model
 MODEL_PATH = 'models/fake_review_model.pkl'
@@ -94,14 +98,32 @@ if st.button("Analyze Review"):
             """, unsafe_allow_html=True)
             st.warning("⚠️ This review shows patterns commonly associated with fake or promotional reviews.")
         else:
-            confidence = probabilities[0] * 100
+            base_confidence = probabilities[0] * 100
+            
+            # --- Hybrid Scoring Logic: Sentiment Boost ---
+            # VADER compound score represents overall sentiment [-1.0, 1.0]
+            sentiment_dict = analyzer.polarity_scores(user_input)
+            polarity = sentiment_dict['compound']
+            
+            # If the ML model thinks it's likely real, and the sentiment is naturally very positive:
+            if base_confidence > 50 and polarity > 0.3:
+                # Boost confidence. For polarity=1.0, we can boost close to 95-99%
+                boost = (polarity * 30)
+                confidence = min(99.9, base_confidence + boost)
+                
+                # If they sound highly genuine, maybe they are simply expressing joy
+                if confidence < 85: 
+                    confidence = 85.0 + (polarity * 10) 
+            else:
+                confidence = base_confidence
+
             st.markdown(f"""
                 <div class="result-box real">
                     ✅ REAL REVIEW DETECTED ✅<br>
                     <span style="font-size: 16px; font-weight: normal;">Confidence: {confidence:.2f}%</span>
                 </div>
             """, unsafe_allow_html=True)
-            st.success("👍 This review appears to be genuine.")
+            st.success(f"👍 This review appears to be genuine. (Sentiment Polarity: {polarity:.2f})")
 
 # Footer
 st.markdown("---")

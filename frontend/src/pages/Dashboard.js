@@ -10,7 +10,8 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 function Dashboard() {
     const [activeTab, setActiveTab] = useState('text');
     const [activeHistoryTab, setActiveHistoryTab] = useState('text');
-    const [showConfidenceTooltip, setShowConfidenceTooltip] = useState(false); // New State
+    const [showConfidenceTooltip, setShowConfidenceTooltip] = useState(false);
+    const [selectedIds, setSelectedIds] = useState([]); // New State for Multi-Delete
     // Form State
     const [formData, setFormData] = useState({
         productName: '',
@@ -41,6 +42,7 @@ function Dashboard() {
                 headers: { 'x-access-token': token }
             });
             setHistory(res.data);
+            setSelectedIds([]); // Clear selection when history refreshes
         } catch (e) {
             console.error("Failed to fetch history");
         }
@@ -87,82 +89,91 @@ function Dashboard() {
             return;
         }
 
-        try {
-            // Mock backend call simulation for Demo
-            // In a real app, this would hit: axios.post('http://localhost:5000/analyze-url', { url: formData.productUrl })
+        setResult(null); // show loading immediately
 
-            // 1. EXTRACT REAL PRODUCT NAME FROM URL
+        try {
+            // 1. Extract product name from URL path
             let extractedName = "Analyzed Product";
+            let productImage = "";
+
             try {
                 const urlObj = new URL(formData.productUrl);
                 const pathSegments = urlObj.pathname.split('/');
-                // Amazon URLs usually have the name in the 2nd segment: /Product-Name/dp/ASIN
-                // Flipkart: /product-name/p/id
-                const potentialName = pathSegments.find(segment => segment.length > 5 && !segment.startsWith('dp') && !segment.startsWith('p'));
-
+                const potentialName = pathSegments.find(seg => seg.length > 5 && !seg.startsWith('dp') && !seg.startsWith('p'));
                 if (potentialName) {
-                    extractedName = potentialName.replace(/-/g, ' ');
-                    // Capitalize first letters
-                    extractedName = extractedName.replace(/\b\w/g, c => c.toUpperCase());
+                    extractedName = potentialName.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
                 } else {
-                    // Fallback if structure is weird, or just use domain
                     extractedName = `Product from ${urlObj.hostname}`;
                 }
             } catch (err) {
-                console.log("Could not parse URL for name");
                 extractedName = "Generic Online Product";
             }
 
-            // Simulating API Latency
-            setResult(null); // Clear previous result
-            setTimeout(() => {
-                const isAuthentic = Math.random() > 0.3; // 70% chance of being authentic for demo
-                const score = isAuthentic ? (0.7 + Math.random() * 0.25) : (0.1 + Math.random() * 0.4);
+            // 2. Fetch real product image from backend proxy (og:image scrape)
+            try {
+                const imgRes = await axios.get(
+                    `http://localhost:5000/api/product-image?url=${encodeURIComponent(formData.productUrl)}`,
+                    { timeout: 8000 }
+                );
+                if (imgRes.data && imgRes.data.imageUrl) {
+                    productImage = imgRes.data.imageUrl;
+                }
+            } catch (err) {
+                console.log("og:image fetch failed, trying ASIN fallback");
+            }
 
-                const resultData = {
-                    prediction: isAuthentic ? 'Real' : 'Fake',
-                    confidence: score,
+            // 3. ASIN fallback: if no og:image found, use wsrv.nl proxy
+            if (!productImage) {
+                const asinMatch = formData.productUrl.match(/\/(?:dp|gp\/product|product)\/([A-Z0-9]{10})/i);
+                if (asinMatch) {
+                    const asin = asinMatch[1];
+                    const amazonImgUrl = `https://images-na.ssl-images-amazon.com/images/P/${asin}.01._SX300_.jpg`;
+                    productImage = `https://wsrv.nl/?url=${encodeURIComponent(amazonImgUrl)}&w=300&h=300&fit=contain`;
+                }
+            }
+
+            // 4. Generate mock scan result
+            const isAuthentic = Math.random() > 0.3;
+            const score = isAuthentic ? (0.7 + Math.random() * 0.25) : (0.1 + Math.random() * 0.4);
+            const resultData = {
+                prediction: isAuthentic ? 'Real' : 'Fake',
+                confidence: score,
+                isUrlAnalysis: true,
+                details: "Based on analysis of 50+ recent comments.",
+                productTitle: extractedName,
+                totalReviews: Math.floor(Math.random() * 500) + 50,
+                sentimentData: {
+                    positive: isAuthentic ? 70 : 30,
+                    negative: isAuthentic ? 10 : 60,
+                    neutral: 20
+                }
+            };
+
+            setResult(resultData);
+
+            // 5. Save to backend history (includes productImage)
+            try {
+                const token = localStorage.getItem('token');
+                await axios.post('http://localhost:5000/predict', {
+                    text: formData.productUrl,
+                    ...formData,
+                    productName: extractedName,
+                    productImage: productImage,
                     isUrlAnalysis: true,
-                    details: "Based on analysis of 50+ recent comments.",
-                    productTitle: extractedName,
-                    totalReviews: Math.floor(Math.random() * 500) + 50,
-                    sentimentData: {
-                        positive: isAuthentic ? 70 : 30,
-                        negative: isAuthentic ? 10 : 60,
-                        neutral: 20
-                    }
-                };
-
-                setResult(resultData);
-
-                // --- SAVE TO BACKEND FOR HISTORY ---
-                try {
-                    const token = localStorage.getItem('token');
-                    // We reuse the /predict endpoint or similar if flexible, 
-                    // OR we just simulate it by refetching history if the backend supported it.
-                    // For now, let's try to post a 'mock' record to the prediction endpoint 
-                    // which likely saves whatever we send.
-                    axios.post('http://localhost:5000/predict', {
-                        text: formData.productUrl, // Store URL as "text"
-                        ...formData,
-                        productName: extractedName,
-                        isUrlAnalysis: true, // Pass this flag
-                        token: token,
-                        mockResult: resultData // Backend might ignore this but good to try or we rely on backend re-predicting.
-                        // Ideally backend should accept a 'manualResult' or we trust the prediction model.
-                        // Since this is a demo, we might not get persistence without backend changes.
-                        // BUT, to satisfy the user who is looking at the UI:
-                    }).then(() => fetchHistory());
-                } catch (err) { console.log('Background save failed'); }
-
-            }, 1500);
+                    token: token,
+                    mockResult: resultData
+                });
+                fetchHistory();
+            } catch (err) { console.log('Background save failed'); }
 
         } catch (e) {
             alert("Error analyzing URL");
         }
     };
 
+
     const handleDelete = async (id) => {
+
         if (!window.confirm("Delete this record?")) return;
         try {
             const token = localStorage.getItem('token');
@@ -172,6 +183,38 @@ function Dashboard() {
             fetchHistory();
         } catch (e) {
             alert("Error deleting record");
+        }
+    };
+
+    const handleBatchDelete = async () => {
+        if (selectedIds.length === 0) return;
+        if (!window.confirm(`Delete ${selectedIds.length} selected records?`)) return;
+        
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post('http://localhost:5000/history/batch-delete', 
+                { ids: selectedIds },
+                { headers: { 'x-access-token': token } }
+            );
+            fetchHistory();
+        } catch (e) {
+            alert("Error deleting records");
+        }
+    };
+
+    const toggleSelection = (id) => {
+        setSelectedIds(prev => 
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
+    };
+
+    const toggleAllSelection = (filteredRecords) => {
+        if (selectedIds.length === filteredRecords.length && filteredRecords.length > 0) {
+            // Deselect all
+            setSelectedIds([]);
+        } else {
+            // Select all currently visible in this tab
+            setSelectedIds(filteredRecords.map(r => r._id));
         }
     };
 
@@ -394,13 +437,35 @@ function Dashboard() {
 
                 {/* Bottom: Recent Table */}
                 <div className="recent-section">
-                    <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', borderBottom: '1px solid #30363d', paddingBottom: '10px' }}>
-                        <button onClick={() => setActiveHistoryTab('text')} style={{ background: 'none', border: 'none', color: activeHistoryTab === 'text' ? '#58a6ff' : '#8b949e', fontWeight: 'bold', cursor: 'pointer', padding: '5px 0', borderBottom: activeHistoryTab === 'text' ? '2px solid #58a6ff' : 'none' }}>
-                            Text Reviews
-                        </button>
-                        <button onClick={() => setActiveHistoryTab('url')} style={{ background: 'none', border: 'none', color: activeHistoryTab === 'url' ? '#58a6ff' : '#8b949e', fontWeight: 'bold', cursor: 'pointer', padding: '5px 0', borderBottom: activeHistoryTab === 'url' ? '2px solid #58a6ff' : 'none' }}>
-                            Product Scans
-                        </button>
+                    <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', borderBottom: '1px solid #30363d', paddingBottom: '10px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '20px' }}>
+                            <button onClick={() => {setActiveHistoryTab('text'); setSelectedIds([])}} style={{ background: 'none', border: 'none', color: activeHistoryTab === 'text' ? '#58a6ff' : '#8b949e', fontWeight: 'bold', cursor: 'pointer', padding: '5px 0', borderBottom: activeHistoryTab === 'text' ? '2px solid #58a6ff' : 'none' }}>
+                                Text Reviews
+                            </button>
+                            <button onClick={() => {setActiveHistoryTab('url'); setSelectedIds([])}} style={{ background: 'none', border: 'none', color: activeHistoryTab === 'url' ? '#58a6ff' : '#8b949e', fontWeight: 'bold', cursor: 'pointer', padding: '5px 0', borderBottom: activeHistoryTab === 'url' ? '2px solid #58a6ff' : 'none' }}>
+                                Product Scans
+                            </button>
+                        </div>
+                        {selectedIds.length > 0 && (
+                            <button 
+                                onClick={handleBatchDelete}
+                                style={{
+                                    marginLeft: 'auto',
+                                    background: '#ef5350',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px'
+                                }}
+                            >
+                                🗑️ Delete Selected ({selectedIds.length})
+                            </button>
+                        )}
                     </div>
 
                     <div className="table-responsive">
@@ -408,6 +473,14 @@ function Dashboard() {
                             <table>
                                 <thead>
                                     <tr>
+                                        <th style={{ width: '40px' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={history.filter(h => !h.isUrlAnalysis).length > 0 && selectedIds.length === history.filter(h => !h.isUrlAnalysis).length}
+                                                onChange={() => toggleAllSelection(history.filter(h => !h.isUrlAnalysis))}
+                                                style={{ cursor: 'pointer' }}
+                                            />
+                                        </th>
                                         <th>Product</th>
                                         <th>Reviewer</th>
                                         <th>Rating</th>
@@ -476,7 +549,15 @@ function Dashboard() {
                                 </thead>
                                 <tbody>
                                     {history.filter(h => !h.isUrlAnalysis).map(record => (
-                                        <tr key={record._id}>
+                                        <tr key={record._id} className={selectedIds.includes(record._id) ? 'selected-row' : ''}>
+                                            <td>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={selectedIds.includes(record._id)}
+                                                    onChange={() => toggleSelection(record._id)}
+                                                    style={{ cursor: 'pointer' }}
+                                                />
+                                            </td>
                                             <td>
                                                 <div style={{ fontWeight: 600, color: 'white' }}>{record.productName || 'Unknown Product'}</div>
                                                 <div style={{ fontSize: '0.8em', color: '#8b949e' }}>{new Date(record.date).toLocaleDateString()}</div>
@@ -515,7 +596,7 @@ function Dashboard() {
                                         </tr>
                                     ))}
                                     {history.filter(h => !h.isUrlAnalysis).length === 0 && (
-                                        <tr><td colSpan="7" style={{ textAlign: 'center', padding: '30px' }}>No text reviews found.</td></tr>
+                                        <tr><td colSpan="8" style={{ textAlign: 'center', padding: '30px' }}>No text reviews found.</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -523,6 +604,14 @@ function Dashboard() {
                             <table>
                                 <thead>
                                     <tr>
+                                        <th style={{ width: '40px' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={history.filter(h => h.isUrlAnalysis).length > 0 && selectedIds.length === history.filter(h => h.isUrlAnalysis).length}
+                                                onChange={() => toggleAllSelection(history.filter(h => h.isUrlAnalysis))}
+                                                style={{ cursor: 'pointer' }}
+                                            />
+                                        </th>
                                         <th>Product Name</th>
                                         <th>Tested By</th>
                                         <th>
@@ -589,7 +678,15 @@ function Dashboard() {
                                 </thead>
                                 <tbody>
                                     {history.filter(h => h.isUrlAnalysis).map(record => (
-                                        <tr key={record._id}>
+                                        <tr key={record._id} className={selectedIds.includes(record._id) ? 'selected-row' : ''}>
+                                            <td>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={selectedIds.includes(record._id)}
+                                                    onChange={() => toggleSelection(record._id)}
+                                                    style={{ cursor: 'pointer' }}
+                                                />
+                                            </td>
                                             <td>
                                                 <div style={{ fontWeight: 600, color: 'white' }}>{record.productTitle || record.productName}</div>
                                                 <div style={{ fontSize: '0.8em', color: '#8b949e' }}><a href={record.productUrl || '#'} target="_blank" rel="noreferrer" style={{ color: '#58a6ff' }}>View Link</a></div>
@@ -634,7 +731,7 @@ function Dashboard() {
                                         </tr>
                                     ))}
                                     {history.filter(h => h.isUrlAnalysis).length === 0 && (
-                                        <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px' }}>No product scans yet.</td></tr>
+                                        <tr><td colSpan="6" style={{ textAlign: 'center', padding: '30px' }}>No product scans yet.</td></tr>
                                     )}
                                 </tbody>
                             </table>

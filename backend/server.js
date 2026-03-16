@@ -9,6 +9,8 @@ const bcrypt = require('bcryptjs');
 
 const User = require('./models/User');
 const History = require('./models/History');
+const https = require('https');
+const http = require('http');
 
 const app = express();
 const PORT = 5000;
@@ -203,12 +205,32 @@ app.delete('/history/:id', async (req, res) => {
 
     try {
         const decoded = jwt.verify(token, SECRET_KEY);
-        // Ensure user owns the item or is admin (for this simple app, just ownership or if it exists)
-        // We will just check if it exists for now to keep it simple, or check userId match.
         await History.findByIdAndDelete(req.params.id);
         res.json({ message: "Deleted" });
     } catch (e) {
         res.status(500).json({ error: "Error deleting item" });
+    }
+});
+
+// 5b. Batch Delete History Items
+app.post('/history/batch-delete', async (req, res) => {
+    const token = req.headers['x-access-token'];
+    if (!token) return res.status(401).json({ error: "No token" });
+
+    try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const { ids } = req.body;
+        
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: "No target IDs provided" });
+        }
+
+        // Delete multiple documents where the _id is in the provided array
+        await History.deleteMany({ _id: { $in: ids } });
+        res.json({ message: `Successfully deleted ${ids.length} records` });
+    } catch (e) {
+        console.error("Batch delete error:", e);
+        res.status(500).json({ error: "Error deleting items" });
     }
 });
 
@@ -251,6 +273,63 @@ app.post('/history/manual', async (req, res) => {
     }
 });
 
+// 8. Product Image Proxy — fetches og:image from a product URL server-side
+app.get('/api/product-image', (req, res) => {
+    const { url } = req.query;
+    if (!url) return res.json({ imageUrl: null });
+
+    let targetUrl;
+    try { targetUrl = new URL(url); } catch { return res.json({ imageUrl: null }); }
+
+    const lib = targetUrl.protocol === 'https:' ? https : http;
+    const options = {
+        hostname: targetUrl.hostname,
+        path: targetUrl.pathname + targetUrl.search,
+        method: 'GET',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'identity',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+        },
+        timeout: 6000
+    };
+
+    let responded = false;
+    const safeJson = (data) => { if (!responded) { responded = true; res.json(data); } };
+
+    const request = lib.request(options, (response) => {
+        // Follow one redirect
+        if ([301, 302, 303, 307, 308].includes(response.statusCode) && response.headers.location) {
+            return safeJson({ imageUrl: null }); // skip redirect for simplicity
+        }
+
+        let html = '';
+        response.on('data', chunk => {
+            html += chunk;
+            if (html.length > 150000) request.destroy(); // stop after 150KB
+        });
+        response.on('end', () => {
+            // Try og:image (two attribute orders)
+            const ogImg =
+                html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1] ||
+                html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)?.[1] ||
+                html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)?.[1] ||
+                html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i)?.[1] ||
+                null;
+
+            safeJson({ imageUrl: ogImg });
+        });
+    });
+
+    request.on('error', () => safeJson({ imageUrl: null }));
+    request.on('timeout', () => { request.destroy(); safeJson({ imageUrl: null }); });
+    request.end();
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
+

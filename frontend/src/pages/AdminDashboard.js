@@ -34,6 +34,7 @@ function AdminDashboard() {
     const [filterUser, setFilterUser] = useState('');
     const [activeHistoryTab, setActiveHistoryTab] = useState('text');
     const [showConfidenceTooltip, setShowConfidenceTooltip] = useState(false); // New State
+    const [selectedIds, setSelectedIds] = useState([]); // New State for Multi-Delete
     const navigate = useNavigate();
     const username = localStorage.getItem('username');
 
@@ -70,6 +71,7 @@ function AdminDashboard() {
             });
             const data = res.data;
             setHistory(data);
+            setSelectedIds([]); // Clear selection when history refreshes
             calculateStats(data);
         } catch (e) {
             console.error("Failed to fetch history");
@@ -112,6 +114,38 @@ function AdminDashboard() {
             fetchHistory();
         } catch (e) {
             alert("Error deleting record");
+        }
+    };
+
+    const handleBatchDelete = async () => {
+        if (selectedIds.length === 0) return;
+        if (!window.confirm(`Delete ${selectedIds.length} selected records permanently?`)) return;
+        
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post('http://localhost:5000/history/batch-delete', 
+                { ids: selectedIds },
+                { headers: { 'x-access-token': token } }
+            );
+            fetchHistory();
+        } catch (e) {
+            alert("Error batch deleting records");
+        }
+    };
+
+    const toggleSelection = (id) => {
+        setSelectedIds(prev => 
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
+    };
+
+    const toggleAllSelection = (filteredRecords) => {
+        if (selectedIds.length === filteredRecords.length && filteredRecords.length > 0) {
+            // Deselect all
+            setSelectedIds([]);
+        } else {
+            // Select all currently visible in this tab
+            setSelectedIds(filteredRecords.map(r => r._id));
         }
     };
 
@@ -309,7 +343,98 @@ function AdminDashboard() {
                     </div>
                 </div>
 
+                {/* PRODUCT SCANS BY URL - 2x2 IMAGE GRID */}
+                <div className="section-title" style={{ marginBottom: '18px' }}>📦 Top Tested Products by URL</div>
+                {(() => {
+                    // Get top 4 most frequently scanned product URLs
+                    const urlRecords = history.filter(h => h.isUrlAnalysis && h.productUrl);
+                    const freq = {};
+                    urlRecords.forEach(r => {
+                        const key = r.productUrl;
+                        if (!freq[key]) freq[key] = { record: r, count: 0 };
+                        freq[key].count++;
+                    });
+                    const top4 = Object.values(freq)
+                        .sort((a, b) => b.count - a.count)
+                        .slice(0, 4);
+
+
+                    if (top4.length === 0) {
+                        return (
+                            <div className="glass-card" style={{ padding: '40px', textAlign: 'center', color: '#8b949e', marginBottom: '40px' }}>
+                                <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🔗</div>
+                                <div>No URL product scans yet. Scans via Amazon URL will appear here.</div>
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <div className="url-product-grid" style={{ marginBottom: '40px' }}>
+                            {top4.map(({ record, count }) => {
+                                const isFake = record.prediction === 'Fake';
+                                const name = record.productTitle || record.productName || 'Unknown Product';
+                                const imgSrc = record.productImage || null;
+                                return (
+                                    <div key={record._id} className="url-product-card glass-card">
+                                        {/* Result ribbon */}
+                                        <div className="url-product-ribbon" style={{ background: isFake ? '#ef5350' : '#2ea043' }}>
+                                            {isFake ? '🚫 FAKE' : '✅ AUTHENTIC'}
+                                        </div>
+
+                                        {/* Product image */}
+                                        <div className="url-product-img-wrap">
+                                            {imgSrc ? (
+                                                <img
+                                                    src={imgSrc}
+                                                    alt={name}
+                                                    className="url-product-img"
+                                                    onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                                />
+                                            ) : null}
+                                            <div className="url-product-img-fallback" style={{ display: imgSrc ? 'none' : 'flex' }}>
+                                                <div style={{
+                                                    width: '70px', height: '70px', borderRadius: '16px',
+                                                    background: isFake ? 'linear-gradient(135deg,#ef5350,#b71c1c)' : 'linear-gradient(135deg,#3fb950,#1a7f37)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: '2rem', fontWeight: 800, color: 'white',
+                                                    boxShadow: isFake ? '0 4px 20px rgba(239,83,80,0.4)' : '0 4px 20px rgba(63,185,80,0.4)'
+                                                }}>
+                                                    {name.charAt(0).toUpperCase()}
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                        {/* Info */}
+                                        <div className="url-product-info">
+                                            <div className="url-product-name" title={name}>
+                                                {name.length > 45 ? name.slice(0, 45) + '…' : name}
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                                                <span style={{ fontSize: '0.75rem', color: '#8b949e' }}>
+                                                    🔄 <strong style={{ color: '#d2a8ff' }}>{count}</strong> scan{count > 1 ? 's' : ''}
+                                                </span>
+                                                <a
+                                                    href={record.productUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    style={{ fontSize: '0.72rem', color: '#58a6ff', textDecoration: 'none' }}
+                                                    onMouseOver={e => e.target.style.textDecoration = 'underline'}
+                                                    onMouseOut={e => e.target.style.textDecoration = 'none'}
+                                                >
+                                                    View →
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    );
+                })()}
+
                 {/* USER LOGS SECTION */}
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                     <div className="section-title" style={{ margin: 0 }}>Global User Logs</div>
                     <input
@@ -323,13 +448,35 @@ function AdminDashboard() {
                 </div>
 
                 <div className="recent-section glass-card">
-                    <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', borderBottom: '1px solid #30363d', paddingBottom: '10px' }}>
-                        <button onClick={() => setActiveHistoryTab('text')} style={{ background: 'none', border: 'none', color: activeHistoryTab === 'text' ? '#58a6ff' : '#8b949e', fontWeight: 'bold', cursor: 'pointer', padding: '5px 0', borderBottom: activeHistoryTab === 'text' ? '2px solid #58a6ff' : 'none' }}>
-                            Text Reviews
-                        </button>
-                        <button onClick={() => setActiveHistoryTab('url')} style={{ background: 'none', border: 'none', color: activeHistoryTab === 'url' ? '#58a6ff' : '#8b949e', fontWeight: 'bold', cursor: 'pointer', padding: '5px 0', borderBottom: activeHistoryTab === 'url' ? '2px solid #58a6ff' : 'none' }}>
-                            Product Scans
-                        </button>
+                    <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', borderBottom: '1px solid #30363d', paddingBottom: '10px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '20px' }}>
+                            <button onClick={() => { setActiveHistoryTab('text'); setSelectedIds([]); }} style={{ background: 'none', border: 'none', color: activeHistoryTab === 'text' ? '#58a6ff' : '#8b949e', fontWeight: 'bold', cursor: 'pointer', padding: '5px 0', borderBottom: activeHistoryTab === 'text' ? '2px solid #58a6ff' : 'none' }}>
+                                Text Reviews
+                            </button>
+                            <button onClick={() => { setActiveHistoryTab('url'); setSelectedIds([]); }} style={{ background: 'none', border: 'none', color: activeHistoryTab === 'url' ? '#58a6ff' : '#8b949e', fontWeight: 'bold', cursor: 'pointer', padding: '5px 0', borderBottom: activeHistoryTab === 'url' ? '2px solid #58a6ff' : 'none' }}>
+                                Product Scans
+                            </button>
+                        </div>
+                        {selectedIds.length > 0 && (
+                            <button 
+                                onClick={handleBatchDelete}
+                                style={{
+                                    marginLeft: 'auto',
+                                    background: '#ef5350',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px'
+                                }}
+                            >
+                                🗑️ Delete Selected ({selectedIds.length})
+                            </button>
+                        )}
                     </div>
 
                     <div className="table-responsive">
@@ -337,6 +484,14 @@ function AdminDashboard() {
                             <table className="admin-table">
                                 <thead>
                                     <tr>
+                                        <th style={{ width: '40px' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={filteredHistory.filter(h => !h.isUrlAnalysis).length > 0 && selectedIds.length === filteredHistory.filter(h => !h.isUrlAnalysis).length}
+                                                onChange={() => toggleAllSelection(filteredHistory.filter(h => !h.isUrlAnalysis))}
+                                                style={{ cursor: 'pointer' }}
+                                            />
+                                        </th>
                                         <th>User</th>
                                         <th>Product</th>
                                         <th>Rating</th>
@@ -407,7 +562,15 @@ function AdminDashboard() {
                                 </thead>
                                 <tbody>
                                     {filteredHistory.filter(h => !h.isUrlAnalysis).map(record => (
-                                        <tr key={record._id}>
+                                        <tr key={record._id} className={selectedIds.includes(record._id) ? 'selected-row' : ''}>
+                                            <td>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={selectedIds.includes(record._id)}
+                                                    onChange={() => toggleSelection(record._id)}
+                                                    style={{ cursor: 'pointer' }}
+                                                />
+                                            </td>
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center' }}>
                                                     <div className="user-avatar">
@@ -461,13 +624,21 @@ function AdminDashboard() {
                                             </td>
                                         </tr>
                                     ))}
-                                    {filteredHistory.filter(h => !h.isUrlAnalysis).length === 0 && <tr><td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>No text logs found.</td></tr>}
+                                    {filteredHistory.filter(h => !h.isUrlAnalysis).length === 0 && <tr><td colSpan="8" style={{ textAlign: 'center', padding: '20px' }}>No text logs found.</td></tr>}
                                 </tbody>
                             </table>
                         ) : (
                             <table className="admin-table">
                                 <thead>
                                     <tr>
+                                        <th style={{ width: '40px' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={filteredHistory.filter(h => h.isUrlAnalysis).length > 0 && selectedIds.length === filteredHistory.filter(h => h.isUrlAnalysis).length}
+                                                onChange={() => toggleAllSelection(filteredHistory.filter(h => h.isUrlAnalysis))}
+                                                style={{ cursor: 'pointer' }}
+                                            />
+                                        </th>
                                         <th>User</th>
                                         <th>Product Name</th>
                                         <th>
@@ -535,7 +706,15 @@ function AdminDashboard() {
                                 </thead>
                                 <tbody>
                                     {filteredHistory.filter(h => h.isUrlAnalysis).map(record => (
-                                        <tr key={record._id}>
+                                        <tr key={record._id} className={selectedIds.includes(record._id) ? 'selected-row' : ''}>
+                                            <td>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={selectedIds.includes(record._id)}
+                                                    onChange={() => toggleSelection(record._id)}
+                                                    style={{ cursor: 'pointer' }}
+                                                />
+                                            </td>
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center' }}>
                                                     <div className="user-avatar" style={{ background: '#8e2de2' }}>
@@ -586,7 +765,7 @@ function AdminDashboard() {
                                             </td>
                                         </tr>
                                     ))}
-                                    {filteredHistory.filter(h => h.isUrlAnalysis).length === 0 && <tr><td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>No product scans found.</td></tr>}
+                                    {filteredHistory.filter(h => h.isUrlAnalysis).length === 0 && <tr><td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>No product scans found.</td></tr>}
                                 </tbody>
                             </table>
                         )}

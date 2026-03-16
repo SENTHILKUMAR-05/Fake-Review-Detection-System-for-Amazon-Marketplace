@@ -7,6 +7,7 @@ const HistorySchema = new mongoose.Schema({
     // New Fields
     productName: { type: String, default: "Unknown Product" },
     productUrl: { type: String, default: "" },
+    productImage: { type: String, default: "" },
     reviewerName: { type: String, default: "Anonymous" },
     rating: { type: Number, default: 0 },
     reviewDate: { type: Date, default: null },

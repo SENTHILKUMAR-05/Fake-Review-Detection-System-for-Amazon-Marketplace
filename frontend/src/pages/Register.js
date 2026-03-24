@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import './Register.css';
-import leafImage from '../assets/leaf.jpg';
 import FloatingLines from '../components/FloatingLines';
+import ElectricBorder from '../components/ElectricBorder';
 
 function Register() {
     const [username, setUsername] = useState('');
@@ -39,9 +39,10 @@ function Register() {
                 />
             </div>
 
-            <div className="auth-card">
-                {/* Left Side: Form */}
-                <div className="auth-card-form">
+            <ElectricBorder color="#e947f5" borderRadius={20} className="auth-card-wrapper" style={{ zIndex: 10 }}>
+                <div className="auth-card">
+                    {/* Form Container */}
+                    <div className="auth-card-form">
                     <h2>Get Started Now</h2>
 
                     <div className="input-group">
@@ -80,10 +81,8 @@ function Register() {
                         Have an account? <Link to="/" className="leaf-link">Sign in</Link>
                     </div>
                 </div>
-
-                {/* Right Side: Image */}
-                <div className="auth-card-image" style={{ backgroundImage: `url(${leafImage})` }}></div>
-            </div>
+                </div>
+            </ElectricBorder>
         </div>
     );
 }

@@ -52,7 +52,7 @@ function AdminAnalysis() {
                 ...formData
             };
 
-            const res = await axios.post('http://localhost:5000/predict', payload);
+            const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/predict`, payload);
             setResult(res.data);
         } catch (e) {
             alert("Error analyzing review");
@@ -106,7 +106,7 @@ function AdminAnalysis() {
                 };
 
                 // Save to DB
-                axios.post('http://localhost:5000/history/manual', {
+                axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/history/manual`, {
                     token: localStorage.getItem('token'),
                     ...resultData
                 }).catch(err => console.error("Failed to save history log", err));

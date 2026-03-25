@@ -28,8 +28,8 @@ function Analytics() {
             const isAdmin = role === 'admin' || username === 'Admin' || username === 'senthil';
 
             const endpoint = isAdmin
-                ? 'http://localhost:5000/admin/history'
-                : 'http://localhost:5000/history';
+                ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/admin/history`
+                : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/history`;
 
             const res = await axios.get(endpoint, {
                 headers: { 'x-access-token': token }

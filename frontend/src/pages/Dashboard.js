@@ -38,7 +38,7 @@ function Dashboard() {
     const fetchHistory = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:5000/history', {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/history`, {
                 headers: { 'x-access-token': token }
             });
             setHistory(res.data);
@@ -75,7 +75,7 @@ function Dashboard() {
                 ...formData
             };
 
-            const res = await axios.post('http://localhost:5000/predict', payload);
+            const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/predict`, payload);
             setResult(res.data);
             fetchHistory();
         } catch (e) {
@@ -112,7 +112,7 @@ function Dashboard() {
             // 2. Fetch real product image from backend proxy (og:image scrape)
             try {
                 const imgRes = await axios.get(
-                    `http://localhost:5000/api/product-image?url=${encodeURIComponent(formData.productUrl)}`,
+                    `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/product-image?url=${encodeURIComponent(formData.productUrl)}`,
                     { timeout: 8000 }
                 );
                 if (imgRes.data && imgRes.data.imageUrl) {
@@ -154,7 +154,7 @@ function Dashboard() {
             // 5. Save to backend history (includes productImage)
             try {
                 const token = localStorage.getItem('token');
-                await axios.post('http://localhost:5000/predict', {
+                await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/predict`, {
                     text: formData.productUrl,
                     ...formData,
                     productName: extractedName,
@@ -177,7 +177,7 @@ function Dashboard() {
         if (!window.confirm("Delete this record?")) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:5000/history/${id}`, {
+            await axios.delete(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/history/${id}`, {
                 headers: { 'x-access-token': token }
             });
             fetchHistory();
@@ -192,7 +192,7 @@ function Dashboard() {
         
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:5000/history/batch-delete', 
+            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/history/batch-delete`, 
                 { ids: selectedIds },
                 { headers: { 'x-access-token': token } }
             );

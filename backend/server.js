@@ -13,7 +13,7 @@ const https = require('https');
 const http = require('http');
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 const SECRET_KEY = "my_secret_key_123"; // In real app, put in .env
 
 // Middleware
@@ -23,7 +23,7 @@ app.use(bodyParser.json());
 // Database Connection
 // For this demo, we can use a local mongodb if available, or just mocking it if user doesn't have it?
 // The user asked for MERN so they likely have Mongo. I will assume local mongo.
-mongoose.connect('mongodb://127.0.0.1:27017/fake_review_db').then(() => console.log("MongoDB Connected"))
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/fake_review_db').then(() => console.log("MongoDB Connected"))
     .catch(err => console.log("MongoDB Connection Error:", err));
 
 // Routes

@@ -66,7 +66,7 @@ function AdminDashboard() {
     const fetchHistory = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:5000/admin/history', {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/admin/history`, {
                 headers: { 'x-access-token': token }
             });
             const data = res.data;
@@ -108,7 +108,7 @@ function AdminDashboard() {
         if (!window.confirm("Delete this record permanently?")) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:5000/history/${id}`, {
+            await axios.delete(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/history/${id}`, {
                 headers: { 'x-access-token': token }
             });
             fetchHistory();
@@ -123,7 +123,7 @@ function AdminDashboard() {
         
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:5000/history/batch-delete', 
+            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/history/batch-delete`, 
                 { ids: selectedIds },
                 { headers: { 'x-access-token': token } }
             );

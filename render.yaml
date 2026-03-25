@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: fake-review-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: PORT
+        value: 5000

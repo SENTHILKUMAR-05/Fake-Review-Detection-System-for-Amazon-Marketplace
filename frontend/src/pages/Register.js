@@ -16,7 +16,7 @@ function Register() {
             return;
         }
         try {
-            await axios.post('http://localhost:5000/register', { username, password });
+            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/register`, { username, password });
             alert("Registration Successful!");
             navigate('/');
         } catch (e) {

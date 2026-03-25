@@ -23,7 +23,7 @@ app.use(bodyParser.json());
 // Database Connection
 // For this demo, we can use a local mongodb if available, or just mocking it if user doesn't have it?
 // The user asked for MERN so they likely have Mongo. I will assume local mongo.
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/fake_review_db').then(() => console.log("MongoDB Connected"))
+mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://senthilks866_db_user:senthilab@cluster0.wfxajuz.mongodb.net/mern_db?retryWrites=true&w=majority&appName=Cluster0').then(() => console.log("MongoDB Connected"))
     .catch(err => console.log("MongoDB Connection Error:", err));
 
 // Routes
